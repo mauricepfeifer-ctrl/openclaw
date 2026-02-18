@@ -98,6 +98,11 @@ export async function loadModelCatalog(params?: {
       if (models.length === 0) {
         // If we found nothing, don't cache this result so we can try again.
         modelCatalogPromise = null;
+        console.warn(
+          "[model-catalog] No model providers found. Messages will fail until a provider is configured.\n" +
+            "  Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY, then restart.\n" +
+            '  Run "openclaw check-integrations" to diagnose.',
+        );
       }
 
       return sortModels(models);

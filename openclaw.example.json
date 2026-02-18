@@ -1,0 +1,82 @@
+{
+  // OpenClaw Configuration for Telegram Bot with OpenRouter
+  // ======================================================
+  // Copy this to ~/.openclaw/openclaw.json on your server
+  // and fill in the required values.
+  //
+  // Required environment variables (set in .env or docker-compose):
+  //   TELEGRAM_BOT_TOKEN  - from @BotFather on Telegram
+  //   OPENROUTER_API_KEY  - from https://openrouter.ai/keys
+  //
+  // Optional (for premium/direct access):
+  //   ANTHROPIC_API_KEY   - from https://console.anthropic.com
+  //   OPENAI_API_KEY      - from https://platform.openai.com
+
+  // Bot identity
+  "identity": {
+    "name": "AI Empire Bot",
+    "theme": "helpful AI assistant",
+    "emoji": "🤖"
+  },
+
+  // Model configuration - OpenRouter as primary provider
+  "agents": {
+    "defaults": {
+      "model": {
+        // Primary: DeepSeek V3 via OpenRouter (~$0.25/1M input tokens - very cheap!)
+        "primary": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "fallbacks": [
+          // Fallback 1: Claude Haiku via OpenRouter (~$1/1M tokens - fast + reliable)
+          "openrouter/anthropic/claude-haiku-4-5",
+          // Fallback 2: Llama 3.3 70B via OpenRouter (FREE)
+          "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+          // Fallback 3: Gemini Flash via OpenRouter (FREE)
+          "openrouter/google/gemini-2.0-flash-exp:free"
+        ]
+      },
+      "thinkingDefault": "off",
+      "verboseDefault": "off",
+      "timeoutSeconds": 120,
+      "maxConcurrent": 5
+    }
+  },
+
+  // Telegram channel
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      // Token from @BotFather (or set TELEGRAM_BOT_TOKEN env var)
+      // "botToken": "123456:ABC-DEF...",
+
+      // DM policy: "open" = anyone can chat, "pairing" = requires pairing code
+      "dmPolicy": "open",
+
+      // Group settings
+      "groupPolicy": "allowlist",
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    }
+  },
+
+  // Session management
+  "session": {
+    "scope": "per-sender",
+    "reset": {
+      "mode": "idle",
+      "idleMinutes": 60
+    },
+    "resetTriggers": ["/new", "/reset"]
+  },
+
+  // Message queue - collect rapid messages before replying
+  "routing": {
+    "queue": {
+      "mode": "collect",
+      "debounceMs": 2000,
+      "cap": 10
+    }
+  }
+}
