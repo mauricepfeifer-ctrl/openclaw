@@ -3,11 +3,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveOpenClawAgentDir } from "../agents/agent-paths.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import {
-  type AuthHealthSummary,
-  type AuthProviderHealth,
-  buildAuthHealthSummary,
-} from "../agents/auth-health.js";
+import { type AuthProviderHealth, buildAuthHealthSummary } from "../agents/auth-health.js";
 import {
   ensureAuthProfileStore,
   isProfileInCooldown,
