@@ -15,6 +15,12 @@ const GRAPH_ROOT = "https://graph.microsoft.com/v1.0";
 const GRAPH_BETA = "https://graph.microsoft.com/beta";
 const GRAPH_SCOPE = "https://graph.microsoft.com";
 
+/** Simple upload limit per Microsoft Graph API (4 MiB) */
+const SIMPLE_UPLOAD_LIMIT = 4 * 1024 * 1024;
+
+/** Chunk size for resumable uploads — must be a multiple of 320 KiB (Graph API requirement) */
+const RESUMABLE_CHUNK_SIZE = 3_932_160; // 3.75 MiB
+
 export interface OneDriveUploadResult {
   id: string;
   webUrl: string;
@@ -22,9 +28,59 @@ export interface OneDriveUploadResult {
 }
 
 /**
+ * Upload a file in chunks using a resumable upload session URL.
+ * Used for files exceeding the 4MB simple upload limit.
+ */
+async function uploadViaResumableSession(params: {
+  uploadUrl: string;
+  buffer: Buffer;
+  fetchFn: typeof fetch;
+}): Promise<OneDriveUploadResult> {
+  const { uploadUrl, buffer, fetchFn } = params;
+  const totalSize = buffer.length;
+  let offset = 0;
+
+  while (offset < totalSize) {
+    const end = Math.min(offset + RESUMABLE_CHUNK_SIZE, totalSize);
+    const chunk = buffer.subarray(offset, end);
+
+    const res = await fetchFn(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Length": String(chunk.length),
+        "Content-Range": `bytes ${offset}-${end - 1}/${totalSize}`,
+      },
+      body: new Uint8Array(chunk),
+    });
+
+    if (res.status === 200 || res.status === 201) {
+      const data = (await res.json()) as {
+        id?: string;
+        webUrl?: string;
+        name?: string;
+      };
+      if (!data.id || !data.webUrl || !data.name) {
+        throw new Error("Resumable upload final response missing required fields");
+      }
+      return { id: data.id, webUrl: data.webUrl, name: data.name };
+    }
+
+    if (res.status !== 202) {
+      const body = await res.text().catch(() => "");
+      throw new Error(
+        `Resumable upload failed at byte ${offset}: ${res.status} ${res.statusText} - ${body}`,
+      );
+    }
+
+    offset = end;
+  }
+
+  throw new Error("Resumable upload finished without a completion response");
+}
+
+/**
  * Upload a file to the user's OneDrive root folder.
- * For larger files, this uses the simple upload endpoint (up to 4MB).
- * TODO: For files >4MB, implement resumable upload session.
+ * Files up to 4MB use the simple upload endpoint; larger files use a resumable upload session.
  */
 export async function uploadToOneDrive(params: {
   buffer: Buffer;
@@ -38,6 +94,39 @@ export async function uploadToOneDrive(params: {
 
   // Use "OpenClawShared" folder to organize bot-uploaded files
   const uploadPath = `/OpenClawShared/${encodeURIComponent(params.filename)}`;
+
+  // For files >4MB, use a resumable upload session
+  if (params.buffer.length > SIMPLE_UPLOAD_LIMIT) {
+    const sessionRes = await fetchFn(
+      `${GRAPH_ROOT}/me/drive/root:${uploadPath}:/createUploadSession`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ item: { name: params.filename } }),
+      },
+    );
+
+    if (!sessionRes.ok) {
+      const body = await sessionRes.text().catch(() => "");
+      throw new Error(
+        `OneDrive create upload session failed: ${sessionRes.status} ${sessionRes.statusText} - ${body}`,
+      );
+    }
+
+    const session = (await sessionRes.json()) as { uploadUrl?: string };
+    if (!session.uploadUrl) {
+      throw new Error("OneDrive create upload session response missing uploadUrl");
+    }
+
+    return uploadViaResumableSession({
+      uploadUrl: session.uploadUrl,
+      buffer: params.buffer,
+      fetchFn,
+    });
+  }
 
   const res = await fetchFn(`${GRAPH_ROOT}/me/drive/root:${uploadPath}:/content`, {
     method: "PUT",
@@ -181,6 +270,39 @@ export async function uploadToSharePoint(params: {
 
   // Use "OpenClawShared" folder to organize bot-uploaded files
   const uploadPath = `/OpenClawShared/${encodeURIComponent(params.filename)}`;
+
+  // For files >4MB, use a resumable upload session
+  if (params.buffer.length > SIMPLE_UPLOAD_LIMIT) {
+    const sessionRes = await fetchFn(
+      `${GRAPH_ROOT}/sites/${params.siteId}/drive/root:${uploadPath}:/createUploadSession`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ item: { name: params.filename } }),
+      },
+    );
+
+    if (!sessionRes.ok) {
+      const body = await sessionRes.text().catch(() => "");
+      throw new Error(
+        `SharePoint create upload session failed: ${sessionRes.status} ${sessionRes.statusText} - ${body}`,
+      );
+    }
+
+    const session = (await sessionRes.json()) as { uploadUrl?: string };
+    if (!session.uploadUrl) {
+      throw new Error("SharePoint create upload session response missing uploadUrl");
+    }
+
+    return uploadViaResumableSession({
+      uploadUrl: session.uploadUrl,
+      buffer: params.buffer,
+      fetchFn,
+    });
+  }
 
   const res = await fetchFn(
     `${GRAPH_ROOT}/sites/${params.siteId}/drive/root:${uploadPath}:/content`,

@@ -94,7 +94,17 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
 
   if (!call && event.direction === "inbound" && event.providerCallId) {
     if (!shouldAcceptInbound(ctx.config, event.from)) {
-      // TODO: Could hang up the call here.
+      if (ctx.provider) {
+        ctx.provider
+          .hangupCall({
+            callId: event.providerCallId,
+            providerCallId: event.providerCallId,
+            reason: "hangup-bot",
+          })
+          .catch(() => {
+            // Best-effort: provider will eventually clean up
+          });
+      }
       return;
     }
 
