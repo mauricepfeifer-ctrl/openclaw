@@ -1,5 +1,11 @@
 import type { ModelDefinitionConfig } from "../config/types.js";
-import { QIANFAN_BASE_URL, QIANFAN_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
+import {
+  DEEPSEEK_BASE_URL,
+  DEEPSEEK_DEFAULT_MODEL_ID,
+  DEEPSEEK_REASONER_MODEL_ID,
+  QIANFAN_BASE_URL,
+  QIANFAN_DEFAULT_MODEL_ID,
+} from "../agents/models-config.providers.js";
 
 export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
 export const MINIMAX_API_BASE_URL = "https://api.minimax.io/anthropic";
@@ -118,5 +124,32 @@ export function buildXaiModelDefinition(): ModelDefinitionConfig {
     cost: XAI_DEFAULT_COST,
     contextWindow: XAI_DEFAULT_CONTEXT_WINDOW,
     maxTokens: XAI_DEFAULT_MAX_TOKENS,
+  };
+}
+
+export {
+  DEEPSEEK_BASE_URL,
+  DEEPSEEK_DEFAULT_MODEL_ID,
+  DEEPSEEK_REASONER_MODEL_ID,
+};
+export const DEEPSEEK_DEFAULT_MODEL_REF = `deepseek/${DEEPSEEK_DEFAULT_MODEL_ID}`;
+export const DEEPSEEK_DEFAULT_CONTEXT_WINDOW = 64000;
+export const DEEPSEEK_DEFAULT_MAX_TOKENS = 8000;
+export const DEEPSEEK_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+export function buildDeepSeekModelDefinition(): ModelDefinitionConfig {
+  return {
+    id: DEEPSEEK_DEFAULT_MODEL_ID,
+    name: "DeepSeek V3",
+    reasoning: false,
+    input: ["text"],
+    cost: DEEPSEEK_DEFAULT_COST,
+    contextWindow: DEEPSEEK_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: DEEPSEEK_DEFAULT_MAX_TOKENS,
   };
 }

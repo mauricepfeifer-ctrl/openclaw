@@ -7,6 +7,8 @@ export {
   applyAuthProfileConfig,
   applyCloudflareAiGatewayConfig,
   applyCloudflareAiGatewayProviderConfig,
+  applyDeepSeekConfig,
+  applyDeepSeekProviderConfig,
   applyQianfanConfig,
   applyQianfanProviderConfig,
   applyKimiCodeConfig,
@@ -44,9 +46,11 @@ export {
 } from "./onboard-auth.config-opencode.js";
 export {
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
+  DEEPSEEK_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   setAnthropicApiKey,
   setCloudflareAiGatewayConfig,
+  setDeepSeekApiKey,
   setQianfanApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
@@ -67,9 +71,13 @@ export {
   XAI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";
 export {
+  buildDeepSeekModelDefinition,
   buildMinimaxApiModelDefinition,
   buildMinimaxModelDefinition,
   buildMoonshotModelDefinition,
+  DEEPSEEK_BASE_URL,
+  DEEPSEEK_DEFAULT_MODEL_ID,
+  DEEPSEEK_REASONER_MODEL_ID,
   DEFAULT_MINIMAX_BASE_URL,
   MOONSHOT_CN_BASE_URL,
   QIANFAN_BASE_URL,
